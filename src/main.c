@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "server.h"
+#include "client.h"
+
 int main(int argc, char *const *argv) {
     char *username = NULL, *ipaddr = NULL;
     uint16_t port = 0;
@@ -32,9 +35,7 @@ int main(int argc, char *const *argv) {
         fprintf(stderr, "ERROR: You have to set a username, an IP-adress and a port.\n");
         return EXIT_FAILURE;
     }
-    printf("Username:  %s\n"
-           "IP-Adress: %s\n"
-           "Port:      %d\n"
-           "Is Server? %s\n", username, ipaddr, port, is_server ? "Yes" : "No");
-    return EXIT_SUCCESS;
+    int status = is_server ? init_server(username, ipaddr, port)
+                           : init_client(username, ipaddr, port);
+    return status;
 }
