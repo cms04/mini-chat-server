@@ -1,0 +1,3 @@
+# Mini-Chat-Server
+
+A simple real-time chat server and client.
