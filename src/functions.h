@@ -21,13 +21,13 @@ typedef struct {
 #define LEN_BUFFER_SIZE 15
 #define TEXT_BUFFER_SIZE 201
 
-#define PRINT_ERROR(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
+#define PRINT_ERROR(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, strerror(errno)); \
                               return EXIT_FAILURE
 
-#define PRINT_ERROR_RETURN_NULL(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
+#define PRINT_ERROR_RETURN_NULL(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, strerror(errno)); \
                                           return NULL
 
-#define PRINT_ERROR_PTHREAD(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
+#define PRINT_ERROR_PTHREAD(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, strerror(errno)); \
                                       pthread_exit((void *) ((long) EXIT_FAILURE))
 
 #define CLOSE_SOCKET(fd) shutdown(fd, SHUT_RDWR); \
