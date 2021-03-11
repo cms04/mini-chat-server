@@ -44,17 +44,12 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     printf("The other person's username is %s. Is this correct? [y,N] ", recieved);
     free(recieved);
     char answer = getchar();
-    if (answer == 'Y' || answer == 'y') {
-        if (send_message(fd_client_send, "Yes")) {
-            CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
-            PRINT_ERROR("send_message");
-        }
-    } else {
+    if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No")) {
+        CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        PRINT_ERROR("send_message");
+    }
+    if (!(answer == 'Y' || answer == 'y')) {
         printf("You denied the chat.\n");
-        if (send_message(fd_client_send, "No")) {
-            CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
-            PRINT_ERROR("get_message");
-        }
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         return EXIT_SUCCESS;
     }
