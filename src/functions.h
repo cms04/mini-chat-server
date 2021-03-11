@@ -8,14 +8,27 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+
+typedef struct {
+    int fd_send;
+    int fd_recv;
+    short enabled;
+    char *username;
+    char *othername;
+} thread_parameter_t;
 
 #define LEN_BUFFER_SIZE 15
+#define TEXT_BUFFER_SIZE 201
 
 #define PRINT_ERROR(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
                               return EXIT_FAILURE
 
 #define PRINT_ERROR_RETURN_NULL(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
                                           return NULL
+
+#define PRINT_ERROR_PTHREAD(function) fprintf(stderr, "ERROR: %s() failed: %s\n", function, strerror(errno)); \
+                                      pthread_exit((void *) ((long) EXIT_FAILURE))
 
 #define CLOSE_SOCKET(fd) shutdown(fd, SHUT_RDWR); \
                          close(fd)
@@ -33,5 +46,9 @@
 
 int send_message(int fd, char *msg);
 char *get_message(int fd);
+int start_chat(int fd_send, int fd_recv, char *username, char *othername);
+
+void *send_thread(void *ptr);
+void *recv_thread(void *ptr);
 
 #endif

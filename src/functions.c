@@ -1,5 +1,6 @@
 #include <string.h>
 #include <sys/socket.h>
+#include <pthread.h>
 
 #include "functions.h"
 
@@ -50,4 +51,76 @@ char *get_message(int fd) {
         PRINT_ERROR_RETURN_NULL("recv");
     }
     return msg;
+}
+
+int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
+    thread_parameter_t *p = (thread_parameter_t *) malloc(sizeof(thread_parameter_t));
+    if (p == NULL) {
+        PRINT_ERROR("malloc");
+    }
+    p->fd_recv = fd_recv;
+    p->fd_send = fd_send;
+    p->username = username;
+    p->othername = othername;
+    p->enabled = 1;
+    pthread_t send_thread_s, recv_thread_s;
+    if (pthread_create(&send_thread_s, NULL, &send_thread, (void *) p)) {
+        free(p);
+        PRINT_ERROR("pthread_create");
+    }
+    if (pthread_create(&recv_thread_s, NULL, &recv_thread, (void *) p)) {
+        free(p);
+        PRINT_ERROR("pthread_create");
+    }
+    int status = EXIT_SUCCESS, tmp = EXIT_SUCCESS;
+    if (pthread_join(send_thread_s, (void *) ((long *) &status))) {
+        free(p);
+        PRINT_ERROR("pthread_join");
+    }
+    if (pthread_join(recv_thread_s, (void *) ((long *) &tmp))) {
+        free(p);
+        PRINT_ERROR("pthread_join");
+    }
+    free(p);
+    return status | tmp;
+}
+
+void *send_thread(void *ptr) {
+    thread_parameter_t *p = (thread_parameter_t *) ptr;
+    while (p->enabled) {
+        char msg_buffer[TEXT_BUFFER_SIZE];
+        bzero(msg_buffer, TEXT_BUFFER_SIZE);
+        fgets(msg_buffer, TEXT_BUFFER_SIZE - 1, stdin);
+        if (send_message(p->fd_send, msg_buffer)) {
+            p->enabled = 0;
+            PRINT_ERROR_PTHREAD("send_message");
+        }
+        if (!strcmp(msg_buffer, "!finish")) {
+            p->enabled = 0;
+            printf("You have left the chat.\n");
+        } else {
+            printf("[ %s ] %s\n", p->username, msg_buffer);
+        }
+    }
+    pthread_exit((void *) ((long) EXIT_SUCCESS));
+}
+
+void *recv_thread(void *ptr) {
+    thread_parameter_t *p = (thread_parameter_t *) ptr;
+    while (p->enabled) {
+        char *msg = get_message(p->fd_recv);
+        if (msg == NULL) {
+            p->enabled = 0;
+            PRINT_ERROR_PTHREAD("get_message");
+        }
+        if (!strcmp(msg, "!finish")) {
+            p->enabled = 0;
+            printf("%s has left the chat.\n", p->othername);
+            send_message(p->fd_send, "!finish");
+        } else {
+            printf("[ %s ] %s\n", p->othername, msg);
+        }
+        free(msg);
+    }
+    pthread_exit((void *) ((long) EXIT_SUCCESS));
 }

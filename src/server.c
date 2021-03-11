@@ -31,40 +31,50 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
         CLOSE_2_SOCKETS(fd_server, fd_client_recv);
         PRINT_ERROR("accept");
     }
-    char *recieved = get_message(fd_client_recv);
-    if (recieved == NULL) {
+    char *othername = get_message(fd_client_recv);
+    if (othername == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         PRINT_ERROR("get_message");
     }
-    printf("The other person's username is %s. Is this correct? [y,N] ", recieved);
-    free(recieved);
+    printf("The other person's username is %s. Is this correct? [y,N] ", othername);
     char answer = getchar();
     if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No")) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        free(othername);
         PRINT_ERROR("send_message");
     }
     if (!(answer == 'Y' || answer == 'y')) {
         printf("You denied the chat.\n");
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        free(othername);
         return EXIT_SUCCESS;
     }
     if (send_message(fd_client_send, username)) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        free(othername);
         PRINT_ERROR("send_message");
     }
-    recieved = get_message(fd_client_recv);
+    char *recieved = get_message(fd_client_recv);
     if (recieved == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        free(othername);
         PRINT_ERROR("get_message");
     }
     if (!strcmp(recieved, "No")) {
         printf("The other person denied the chat.\n");
         free(recieved);
+        free(othername);
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         return EXIT_SUCCESS;
     }
     free(recieved);
     printf("Both persons accepted the chat.\n");
+    if (start_chat(fd_client_send, fd_client_recv, username, othername)) {
+        free(othername);
+        CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
+        PRINT_ERROR("start_chat");
+    }
+    free(othername);
     CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
     return EXIT_SUCCESS;
 }
