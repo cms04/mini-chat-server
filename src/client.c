@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#include "macros.h"
+#include "functions.h"
 #include "client.h"
 
 int init_client(char *username, char *ipaddr, uint16_t port) {
@@ -17,22 +17,21 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
     server_addr.sin_addr.s_addr = inet_addr(ipaddr);
     server_addr.sin_port = htons(port);
     if (connect(fd_client, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-        close(fd_client);
+        CLOSE_SOCKET(fd_client);
         PRINT_ERROR("connect");
     }
     char *msg = "Hallo";
-    if (send(fd_client, msg, strlen(msg), 0) < 0) {
-        close(fd_client);
-        PRINT_ERROR("send");
+    if (send_message(fd_client, msg)) {
+        CLOSE_SOCKET(fd_client);
+        PRINT_ERROR("send_message");
     }
-    char buf[10];
-    int bytes_rcv = recv(fd_client, buf, 9, 0);
-    if (bytes_rcv < 0) {
-        close(fd_client);
-        PRINT_ERROR("recv");
+    char *recieved = get_message(fd_client);
+    if (recieved == NULL) {
+        CLOSE_SOCKET(fd_client);
+        PRINT_ERROR("get_message");
     }
-    buf[bytes_rcv] = '\0';
-    printf("%s\n", buf);
-    close(fd_client);
+    printf("%s\n", recieved);
+    free(recieved);
+    CLOSE_SOCKET(fd_client);
     return EXIT_SUCCESS;
 }

@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#include "macros.h"
+#include "functions.h"
 #include "server.h"
 
 int init_server(char *username, char *ipaddr, uint16_t port) {
@@ -17,38 +17,35 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     server_addr.sin_addr.s_addr = inet_addr(ipaddr);
     server_addr.sin_port = htons(port);
     if (bind(fd_server, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-        close(fd_server);
+        CLOSE_SOCKET(fd_server);
         PRINT_ERROR("bind");
     }
     if (listen(fd_server, 0) < 0) {
-        close(fd_server);
+        CLOSE_SOCKET(fd_server);
         PRINT_ERROR("listen");
     }
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int fd_client = accept(fd_server, (struct sockaddr *) &client_addr, &client_len);
     if (fd_client < 0) {
-        close(fd_server);
+        CLOSE_SOCKET(fd_server);
         PRINT_ERROR("accept");
     }
-
-    char buf[10];
-    int bytes_rcv = recv(fd_client, buf, 9, 0);
-    if (bytes_rcv < 0) {
-        close(fd_client);
-        close(fd_server);
-        PRINT_ERROR("recv");
+    char *recieved = get_message(fd_client);
+    if (recieved == NULL) {
+        CLOSE_SOCKET(fd_client);
+        CLOSE_SOCKET(fd_server);
+        PRINT_ERROR("get_message");
     }
-    buf[bytes_rcv] = '\0';
-    printf("%s\n", buf);
+    printf("%s\n", recieved);
+    free(recieved);
     char *msg = "Welt";
-    int bytes_sent = send(fd_client, msg, strlen(msg), 0);
-    if (bytes_sent < 0) {
-        close(fd_client);
-        close(fd_server);
-        PRINT_ERROR("send");
+    if (send_message(fd_client, msg)) {
+        CLOSE_SOCKET(fd_client);
+        CLOSE_SOCKET(fd_server);
+        PRINT_ERROR("send_message");
     }
-    close(fd_client);
-    close(fd_server);
+    CLOSE_SOCKET(fd_client);
+    CLOSE_SOCKET(fd_server);
     return EXIT_SUCCESS;
 }
