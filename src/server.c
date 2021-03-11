@@ -41,10 +41,18 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     free(recieved);
     char answer = getchar();
     if (answer == 'Y' || answer == 'y') {
-        send_message(fd_client, "Yes");
+        if (send_message(fd_client, "Yes")) {
+            CLOSE_SOCKET(fd_client);
+            CLOSE_SOCKET(fd_server);
+            PRINT_ERROR("send_message");
+        }
     } else {
         printf("You denied the chat.\n");
-        send_message(fd_client, "No");
+        if (send_message(fd_client, "No")) {
+            CLOSE_SOCKET(fd_client);
+            CLOSE_SOCKET(fd_server);
+            PRINT_ERROR("get_message");
+        }
         CLOSE_SOCKET(fd_client);
         CLOSE_SOCKET(fd_server);
         return EXIT_SUCCESS;
