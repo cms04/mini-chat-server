@@ -18,7 +18,7 @@ int send_message(int fd, char *msg) {
     if (bytes_rcv < 0) {
         PRINT_ERROR("recv");
     }
-    if (atoi(len_string) != len) {
+    if (strtoul(len_string, NULL, 10) != len) {
         PRINT_ERROR("send_message");
     }
     bytes_sent = send(fd, msg, strlen(msg), 0);
