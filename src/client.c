@@ -20,8 +20,7 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         CLOSE_SOCKET(fd_client);
         PRINT_ERROR("connect");
     }
-    char *msg = "Hallo";
-    if (send_message(fd_client, msg)) {
+    if (send_message(fd_client, username)) {
         CLOSE_SOCKET(fd_client);
         PRINT_ERROR("send_message");
     }
@@ -30,8 +29,30 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         CLOSE_SOCKET(fd_client);
         PRINT_ERROR("get_message");
     }
-    printf("%s\n", recieved);
+    if (!strcmp(recieved, "No")) {
+        printf("The other person denied the chat.\n");
+        free(recieved);
+        CLOSE_SOCKET(fd_client);
+        return EXIT_SUCCESS;
+    }
     free(recieved);
+    recieved = get_message(fd_client);
+    if (recieved == NULL) {
+        CLOSE_SOCKET(fd_client);
+        PRINT_ERROR("get_message");
+    }
+    printf("The other person's username is %s. Is this correct? [y,N] ", recieved);
+    free(recieved);
+    char answer = getchar();
+    if (answer == 'Y' || answer == 'y') {
+        send_message(fd_client, "Yes");
+    } else {
+        printf("You denied the chat.\n");
+        send_message(fd_client, "No");
+        CLOSE_SOCKET(fd_client);
+        return EXIT_SUCCESS;
+    }
+    printf("Both persons accepted the chat.\n");
     CLOSE_SOCKET(fd_client);
     return EXIT_SUCCESS;
 }
