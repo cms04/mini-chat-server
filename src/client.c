@@ -1,6 +1,4 @@
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
 #include "functions.h"
@@ -17,10 +15,7 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         PRINT_ERROR("socket");
     }
     struct sockaddr_in server_addr;
-    bzero(&server_addr, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(ipaddr);
-    server_addr.sin_port = htons(port);
+    INIT_SOCKADDR_STRUCT(server_addr, ipaddr, port);
     if (connect(fd_client_send, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
         CLOSE_2_SOCKETS(fd_client_recv, fd_client_send);
         PRINT_ERROR("connect");

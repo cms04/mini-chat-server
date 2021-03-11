@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define LEN_BUFFER_SIZE 15
 
@@ -23,6 +25,11 @@
 
 #define CLOSE_3_SOCKETS(fd1, fd2, fd3) CLOSE_2_SOCKETS(fd1, fd2); \
                                        CLOSE_SOCKET(fd3)
+
+#define INIT_SOCKADDR_STRUCT(str, ipaddr, port) bzero(&str, sizeof(str)); \
+                                                str.sin_family = AF_INET; \
+                                                str.sin_addr.s_addr = inet_addr(ipaddr); \
+                                                str.sin_port = htons(port)
 
 int send_message(int fd, char *msg);
 char *get_message(int fd);
