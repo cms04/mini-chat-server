@@ -18,6 +18,12 @@
 #define CLOSE_SOCKET(fd) shutdown(fd, SHUT_RDWR); \
                          close(fd)
 
+#define CLOSE_2_SOCKETS(fd1, fd2) CLOSE_SOCKET(fd1); \
+                                  CLOSE_SOCKET(fd2)
+
+#define CLOSE_3_SOCKETS(fd1, fd2, fd3) CLOSE_2_SOCKETS(fd1, fd2); \
+                                       CLOSE_SOCKET(fd3)
+
 int send_message(int fd, char *msg);
 char *get_message(int fd);
 
