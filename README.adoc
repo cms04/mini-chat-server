@@ -1,3 +1,18 @@
 # Mini-Chat-Server
 
 A simple real-time chat server and client.
+
+**IMPORTANT: This application is under construction! Especially it doesn't provide any kind of encryption yet! Use at your own risk!**
+
+## Usage
+
+Compile the program using the Makefile. Just type `make`. Then you can start the program with
+
+`./minichatserver [-s] -u <USERNAME> -a <SERVER-ADRESS> -p <SERVER-PORT>`
+
+Parameters:
+
+- `-s`: Activates the server mode. If you are the server, set this parameter, otherwise don't set it.
+- `-u`: Set your username that is shown in the chat to your chat-partner. This parameter has to be set!
+- `-a`: If you are the server, then you have to specify your IP-Adress with this parameter. If you are the client, you specify the IP of your chat-partner with this parameter. This parameter has to be set!
+- `-p`: If you are the server, then you have to specify the server-port with this parameter. If you are the client, you specify the server's port on your chat-partner's computer with this parameter. This parameter has to be set!
