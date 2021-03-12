@@ -73,7 +73,11 @@ int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
         PRINT_ERROR("pthread_create");
     }
     int status = EXIT_SUCCESS, tmp = EXIT_SUCCESS;
-    if (pthread_join(recv_thread_s, (void *) ((long *) &tmp))) {
+    if (pthread_join(recv_thread_s, (void *) ((long *) &status))) {
+        free(p);
+        PRINT_ERROR("pthread_join");
+    }
+    if (pthread_join(send_thread_s, (void *) ((long *) &tmp))) {
         free(p);
         PRINT_ERROR("pthread_join");
     }
@@ -111,7 +115,9 @@ void *recv_thread(void *ptr) {
         }
         if (!strcmp(msg, "quit_chat\n")) {
             p->enabled = 0;
-            printf("%s has left the chat.\n", p->othername);
+            printf("%s has left the chat.\n"
+                   "Press [ENTER] twice to close the chat.\n", p->othername);
+            getchar();
         } else {
             printf("[ %s ] %s\n", p->othername, msg);
         }
