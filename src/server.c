@@ -38,6 +38,7 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     }
     printf("The other person's username is %s. Is this correct? [y,N] ", othername);
     char answer = getchar();
+    getchar();
     if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No")) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);

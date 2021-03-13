@@ -116,8 +116,7 @@ void *recv_thread(void *ptr) {
         if (!strcmp(msg, "quit_chat\n")) {
             p->enabled = 0;
             printf("%s has left the chat.\n"
-                   "Press [ENTER] twice to close the chat.\n", p->othername);
-            getchar();
+                   "Press [ENTER] to close the chat.\n", p->othername);
         } else {
             printf("[ %s ] %s\n", p->othername, msg);
         }
