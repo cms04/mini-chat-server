@@ -92,6 +92,10 @@ void *send_thread(void *ptr) {
         char msg_buffer[TEXT_BUFFER_SIZE];
         bzero(msg_buffer, TEXT_BUFFER_SIZE);
         fgets(msg_buffer, TEXT_BUFFER_SIZE - 1, stdin);
+        if (!strcmp(msg_buffer, "\n")) {
+            printf("\033[A\r");
+            continue;
+        }
         if (send_message(p->fd_send, msg_buffer)) {
             p->enabled = 0;
             PRINT_ERROR_PTHREAD("send_message");
