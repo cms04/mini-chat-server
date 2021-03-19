@@ -99,7 +99,7 @@ void *send_thread(void *ptr) {
             p->enabled = 0;
             printf("You have left the chat.\n");
         } else {
-            printf("[ %s ] %s\n", p->username, msg_buffer);
+            printf("\033[A\r[ %s ] %s", p->username, msg_buffer);
         }
     }
     pthread_exit((void *) ((long) EXIT_SUCCESS));
@@ -115,10 +115,10 @@ void *recv_thread(void *ptr) {
         }
         if (!strcmp(msg, "quit_chat\n")) {
             p->enabled = 0;
-            printf("%s has left the chat.\n"
+            printf("\n%s has left the chat.\n"
                    "Press [ENTER] to close the chat.\n", p->othername);
         } else {
-            printf("[ %s ] %s\n", p->othername, msg);
+            printf("[ %s ] %s", p->othername, msg);
         }
         free(msg);
     }
