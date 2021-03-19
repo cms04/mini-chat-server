@@ -21,6 +21,7 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     }
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
+    printf("Ready to accept connections...\n");
     int fd_client_recv = accept(fd_server, (struct sockaddr *) &client_addr, &client_len);
     if (fd_client_recv < 0) {
         CLOSE_SOCKET(fd_server);
@@ -31,6 +32,7 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
         CLOSE_2_SOCKETS(fd_server, fd_client_recv);
         PRINT_ERROR("accept");
     }
+    printf("Accepted one connection.\n");
     char *othername = get_message(fd_client_recv);
     if (othername == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
@@ -55,6 +57,7 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
         free(othername);
         PRINT_ERROR("send_message");
     }
+    printf("Waiting for username verification...\n");
     char *recieved = get_message(fd_client_recv);
     if (recieved == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);

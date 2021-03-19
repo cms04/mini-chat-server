@@ -24,6 +24,8 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         CLOSE_2_SOCKETS(fd_client_recv, fd_client_send);
         PRINT_ERROR("connect");
     }
+    printf("Connection successful.\n"
+           "Waiting for username verification...\n");
     if (send_message(fd_client_send, username)) {
         CLOSE_2_SOCKETS(fd_client_recv, fd_client_send);
         PRINT_ERROR("send_message");
