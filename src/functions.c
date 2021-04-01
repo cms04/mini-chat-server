@@ -73,7 +73,7 @@ int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
         PRINT_ERROR("pthread_create");
     }
     printf("Ready to chat.\n\n");
-    int status = EXIT_SUCCESS, tmp = EXIT_SUCCESS;
+    long status = EXIT_SUCCESS, tmp = EXIT_SUCCESS;
     if (pthread_join(recv_thread_s, (void *) ((long *) &status))) {
         free(p);
         PRINT_ERROR("pthread_join");
@@ -83,29 +83,60 @@ int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
         PRINT_ERROR("pthread_join");
     }
     free(p);
-    return status | tmp;
+    return (int) (status | tmp);
+}
+
+
+char *read_input(void) {
+    char *result = (char *) malloc(sizeof(char));
+    if (result == NULL) {
+        PRINT_ERROR_RETURN_NULL("malloc");
+    }
+    size_t len = 0;
+    char buffer[TEXT_BUFFER_SIZE];
+    bzero(buffer, TEXT_BUFFER_SIZE);
+    while (fgets(buffer, TEXT_BUFFER_SIZE - 1, stdin) != NULL) {
+        size_t buffer_len = strlen(buffer);
+        result = realloc(result, (len + buffer_len + 1) * sizeof(char));
+        if (result == NULL) {
+            PRINT_ERROR_RETURN_NULL("realloc");
+        }
+        strncpy(result + len, buffer, buffer_len);
+        len += buffer_len;
+        if (strrchr(buffer, '\n') != NULL) {
+            break;
+        }
+        bzero(buffer, TEXT_BUFFER_SIZE);
+    }
+    result[len] = '\0';
+    return result;
 }
 
 void *send_thread(void *ptr) {
     thread_parameter_t *p = (thread_parameter_t *) ptr;
     while (p->enabled) {
-        char msg_buffer[TEXT_BUFFER_SIZE];
-        bzero(msg_buffer, TEXT_BUFFER_SIZE);
-        fgets(msg_buffer, TEXT_BUFFER_SIZE - 1, stdin);
-        if (!strcmp(msg_buffer, "\n")) {
+        char *msg = read_input();
+        if (msg == NULL) {
+            p->enabled = 0;
+            PRINT_ERROR_PTHREAD("read_input");
+        }
+        if (!strcmp(msg, "\n")) {
             printf("\033[A\r");
+            free(msg);
             continue;
         }
-        if (send_message(p->fd_send, msg_buffer)) {
+        if (send_message(p->fd_send, msg)) {
             p->enabled = 0;
+            free(msg);
             PRINT_ERROR_PTHREAD("send_message");
         }
-        if (!strcmp(msg_buffer, "quit_chat\n")) {
+        if (!strcmp(msg, "quit_chat\n")) {
             p->enabled = 0;
             printf("\nYou have left the chat.\n");
         } else {
-            printf("\033[A\r[ %s ] %s", p->username, msg_buffer);
+            printf("\033[A\r[ %s ] %s", p->username, msg);
         }
+        free(msg);
     }
     pthread_exit((void *) ((long) EXIT_SUCCESS));
 }

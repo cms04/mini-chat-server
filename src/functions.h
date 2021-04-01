@@ -19,7 +19,7 @@ typedef struct {
 } thread_parameter_t;
 
 #define LEN_BUFFER_SIZE 15
-#define TEXT_BUFFER_SIZE 201
+#define TEXT_BUFFER_SIZE 50
 
 #define PRINT_ERROR(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, strerror(errno)); \
                               return EXIT_FAILURE
@@ -47,6 +47,7 @@ typedef struct {
 int send_message(int fd, char *msg);
 char *get_message(int fd);
 int start_chat(int fd_send, int fd_recv, char *username, char *othername);
+char *read_input(void);
 
 void *send_thread(void *ptr);
 void *recv_thread(void *ptr);
