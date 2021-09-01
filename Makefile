@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -std=gnu11 -g -lpthread
+CFLAGS = -Wall -std=gnu11 -g -lpthread -lssl -lcrypto
 OUTPUT = minichatserver
 
 $(OUTPUT): objects

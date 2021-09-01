@@ -21,6 +21,8 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     }
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
+    RSA *key = create_rsa_key();
+    RSA_free(key);
     printf("Ready to accept connections...\n");
     int fd_client_recv = accept(fd_server, (struct sockaddr *) &client_addr, &client_len);
     if (fd_client_recv < 0) {

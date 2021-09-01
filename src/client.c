@@ -14,6 +14,8 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         CLOSE_SOCKET(fd_client_send);
         PRINT_ERROR("socket");
     }
+    RSA *key = create_rsa_key();
+    RSA_free(key);
     struct sockaddr_in server_addr;
     INIT_SOCKADDR_STRUCT(server_addr, ipaddr, port);
     if (connect(fd_client_send, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {

@@ -1,6 +1,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <openssl/bn.h>
+#include <openssl/pem.h>
 
 #include "functions.h"
 
@@ -159,4 +161,31 @@ void *recv_thread(void *ptr) {
         free(msg);
     }
     pthread_exit((void *) ((long) EXIT_SUCCESS));
+}
+
+RSA *create_rsa_key(void) {
+    printf("Your RSA key is generated...\n");
+    RSA *key = RSA_new();
+    if (key == NULL) {
+        PRINT_ERROR_RETURN_NULL("RSA_new");
+    }
+    srand(time(NULL));
+    BIGNUM *e = BN_new();
+    if (e == NULL) {
+        RSA_free(key);
+        PRINT_ERROR_RETURN_NULL("BN_new");
+    }
+    if (!BN_rand(e, 2048, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ODD)) {
+        RSA_free(key);
+        BN_clear_free(e);
+        PRINT_ERROR_RETURN_NULL("BN_rand");
+    }
+    if (!RSA_generate_key_ex(key, 2048, e, NULL)) {
+        RSA_free(key);
+        BN_clear_free(e);
+        PRINT_ERROR_RETURN_NULL("RSA_generate_key_ex");
+    }
+    BN_clear_free(e);
+    printf("Your RSA key was generated successfully.\n");
+    return key;
 }
