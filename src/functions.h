@@ -25,7 +25,7 @@ typedef struct {
 #define LEN_BUFFER_SIZE 15
 #define TEXT_BUFFER_SIZE 50
 
-#define ERROR_OPENSSL(function) fprintf(stderr, "ERROR: %s() failes at %s, line %d: %s\n", function, __FILE__, __LINE__, ERR_error_string(ERR_get_error(), NULL)); \
+#define ERROR_OPENSSL(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, ERR_error_string(ERR_get_error(), NULL)); \
                                 return EXIT_FAILURE
 
 #define ERROR_OPENSSL_RETURN_NULL(function) fprintf(stderr, "ERROR: %s() failes at %s, line %d: %s\n", function, __FILE__, __LINE__, ERR_error_string(ERR_get_error(), NULL)); \

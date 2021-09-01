@@ -88,27 +88,12 @@ int start_chat(int fd_send, int fd_recv, char *username, char *othername, RSA *p
 
 
 char *read_input(void) {
-    char *result = (char *) malloc(sizeof(char));
-    if (result == NULL) {
-        PRINT_ERROR_RETURN_NULL("malloc");
+    char *result = NULL;
+    size_t n = 0;
+    if (getline(&result, &n, stdin) < 0) {
+        free(result);
+        return NULL;
     }
-    size_t len = 0;
-    char buffer[TEXT_BUFFER_SIZE];
-    bzero(buffer, TEXT_BUFFER_SIZE);
-    while (fgets(buffer, TEXT_BUFFER_SIZE - 1, stdin) != NULL) {
-        size_t buffer_len = strlen(buffer);
-        result = realloc(result, (len + buffer_len + 1) * sizeof(char));
-        if (result == NULL) {
-            PRINT_ERROR_RETURN_NULL("realloc");
-        }
-        strncpy(result + len, buffer, buffer_len);
-        len += buffer_len;
-        if (strrchr(buffer, '\n') != NULL) {
-            break;
-        }
-        bzero(buffer, TEXT_BUFFER_SIZE);
-    }
-    result[len] = '\0';
     return result;
 }
 
