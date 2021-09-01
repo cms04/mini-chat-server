@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <openssl/rsa.h>
+#include <openssl/err.h>
 #include <pthread.h>
 
 typedef struct {
@@ -23,6 +24,12 @@ typedef struct {
 
 #define LEN_BUFFER_SIZE 15
 #define TEXT_BUFFER_SIZE 50
+
+#define ERROR_OPENSSL(function) fprintf(stderr, "ERROR: %s() failes at %s, line %d: %s\n", function, __FILE__, __LINE__, ERR_error_string(ERR_get_error(), NULL)); \
+                                return EXIT_FAILURE
+
+#define ERROR_OPENSSL_RETURN_NULL(function) fprintf(stderr, "ERROR: %s() failes at %s, line %d: %s\n", function, __FILE__, __LINE__, ERR_error_string(ERR_get_error(), NULL)); \
+                                            return NULL
 
 #define PRINT_ERROR(function) fprintf(stderr, "ERROR: %s() failed at %s, line %d: %s\n", function, __FILE__, __LINE__, strerror(errno)); \
                               return EXIT_FAILURE

@@ -8,29 +8,17 @@
 #include "functions.h"
 
 int send_message(int fd, char *msg, RSA *publickey) {
-    size_t len = strlen(msg);
-    char len_string[LEN_BUFFER_SIZE];
-    bzero(len_string, LEN_BUFFER_SIZE);
-    snprintf(len_string, LEN_BUFFER_SIZE - 1, "%ld", len);
-    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
-    if (bytes_sent < 0) {
-        PRINT_ERROR("send");
+    size_t rsa_size = RSA_size(publickey);
+    size_t msg_len = strlen(msg);
+    char *crypt = (char *) malloc(rsa_size * sizeof(char));
+    if (crypt == NULL) {
+        PRINT_ERROR("malloc");
     }
-    bzero(len_string, LEN_BUFFER_SIZE);
-    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
-    if (bytes_rcv < 0) {
-        PRINT_ERROR("recv");
-    }
-    if (strtoul(len_string, NULL, 10) != len) {
-        PRINT_ERROR("send_message");
-    }
-    char *crypt = (char *) malloc(RSA_size(publickey) * sizeof(char));
-    if (RSA_public_encrypt(len, (unsigned char *) msg, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
+    if (RSA_public_encrypt(msg_len, (unsigned char *) msg, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
         free(crypt);
-        PRINT_ERROR("RSA_public_encrypt");
+        ERROR_OPENSSL("RSA_public_encrypt");
     }
-    bytes_sent = send(fd, crypt, RSA_size(publickey), 0);
-    if (bytes_sent < 0) {
+    if (send(fd, crypt, rsa_size, 0) < 0) {
         free(crypt);
         PRINT_ERROR("send");
     }
@@ -39,33 +27,25 @@ int send_message(int fd, char *msg, RSA *publickey) {
 }
 
 char *get_message(int fd, RSA *privatekey) {
-    char len_string[LEN_BUFFER_SIZE];
-    bzero(len_string, LEN_BUFFER_SIZE);
-    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
-    if (bytes_rcv < 0) {
-        PRINT_ERROR_RETURN_NULL("recv");
+    size_t rsa_size = RSA_size(privatekey);
+    char *crypt = (char *) malloc(sizeof(char) * rsa_size);
+    if (crypt == NULL) {
+        PRINT_ERROR_RETURN_NULL("malloc");
     }
-    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
-    if (bytes_sent < 0) {
-        PRINT_ERROR_RETURN_NULL("send");
-    }
-    size_t len = atoi(len_string);
-    char *crypt = (char *) malloc(sizeof(char) * RSA_size(privatekey));
-    bytes_rcv = recv(fd, crypt, RSA_size(privatekey), 0);
-    if (bytes_rcv < 0) {
+    if (recv(fd, crypt, rsa_size, 0) < 0) {
         free(crypt);
         PRINT_ERROR_RETURN_NULL("recv");
     }
-    char *msg = (char *) malloc((len + 1) * sizeof(char));
+    char *msg = (char *) malloc(rsa_size * sizeof(char));
     if (msg == NULL) {
         free(crypt);
         PRINT_ERROR_RETURN_NULL("malloc");
     }
-    bzero(msg, len + 1);
-    if (RSA_private_decrypt(RSA_size(privatekey), (unsigned char *) crypt, (unsigned char *) msg, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
+    bzero(msg, rsa_size);
+    if (RSA_private_decrypt(rsa_size, (unsigned char *) crypt, (unsigned char *) msg, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
         free(crypt);
         free(msg);
-        PRINT_ERROR_RETURN_NULL("RSA_private_decrypt");
+        ERROR_OPENSSL_RETURN_NULL("RSA_private_decrypt");
     }
     free(crypt);
     return msg;
@@ -185,23 +165,23 @@ RSA *create_rsa_key(uint16_t bits) {
     printf("Your RSA key is generated...\n");
     RSA *key = RSA_new();
     if (key == NULL) {
-        PRINT_ERROR_RETURN_NULL("RSA_new");
+        ERROR_OPENSSL_RETURN_NULL("RSA_new");
     }
     srand(time(NULL));
     BIGNUM *e = BN_new();
     if (e == NULL) {
         RSA_free(key);
-        PRINT_ERROR_RETURN_NULL("BN_new");
+        ERROR_OPENSSL_RETURN_NULL("BN_new");
     }
     if (!BN_set_word(e, RSA_F4)) {
         RSA_free(key);
         BN_clear_free(e);
-        PRINT_ERROR_RETURN_NULL("BN_rand");
+        ERROR_OPENSSL_RETURN_NULL("BN_rand");
     }
     if (!RSA_generate_key_ex(key, bits, e, NULL)) {
         RSA_free(key);
         BN_clear_free(e);
-        PRINT_ERROR_RETURN_NULL("RSA_generate_key_ex");
+        ERROR_OPENSSL_RETURN_NULL("RSA_generate_key_ex");
     }
     BN_clear_free(e);
     printf("Your RSA key was generated successfully.\n");
@@ -211,7 +191,7 @@ RSA *create_rsa_key(uint16_t bits) {
 int send_publickey(RSA *key, int fd_send) {
     RSA *publickey = RSAPublicKey_dup(key);
     if (publickey == NULL) {
-        PRINT_ERROR("RSAPublicKey_dup");
+        ERROR_OPENSSL("RSAPublicKey_dup");
     }
     FILE *fp = fopen("sended.key", "w+");
     if (fp == NULL) {
@@ -250,12 +230,14 @@ RSA *recv_publickey(int fd_recv) {
     RSA *publickey = RSA_new();
     if (publickey == NULL) {
         fclose(fp);
-        PRINT_ERROR_RETURN_NULL("RSA_new");
+        unlink("recieved.key");
+        ERROR_OPENSSL_RETURN_NULL("RSA_new");
     }
     if (PEM_read_RSAPublicKey(fp, &publickey, NULL, NULL) == NULL) {
         RSA_free(publickey);
         fclose(fp);
-        PRINT_ERROR_RETURN_NULL("PEM_read_RSAPublicKey");
+        unlink("recieved.key");
+        ERROR_OPENSSL_RETURN_NULL("PEM_read_RSAPublicKey");
     }
     fclose(fp);
     unlink("recieved.key");
