@@ -117,7 +117,8 @@ void *send_thread(void *ptr) {
         }
         if (!strcmp(msg, "quit_chat\n")) {
             p->enabled = 0;
-            printf("\nYou have left the chat.\n");
+            printf("\nYou have left the chat.\n"
+                   "Wait for %s to close the chat...\n", p->othername);
         } else {
             printf("\033[A\r[ %s ] %s", p->username, msg);
         }
