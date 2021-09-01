@@ -53,7 +53,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         PRINT_ERROR("recv_publickey");
     }
     printf("RSA public keys exchanged\n");
-    char *othername = get_message(fd_client_recv);
+    char *othername = get_message(fd_client_recv, key);
     if (othername == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         RSA_free(key);
@@ -63,7 +63,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
     printf("The other person's username is %s. Is this correct? [y,N] ", othername);
     char answer = getchar();
     getchar();
-    if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No")) {
+    if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No", publickey)) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);
         RSA_free(key);
@@ -78,7 +78,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         RSA_free(publickey);
         return EXIT_SUCCESS;
     }
-    if (send_message(fd_client_send, username)) {
+    if (send_message(fd_client_send, username, publickey)) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);
         RSA_free(key);
@@ -86,7 +86,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         PRINT_ERROR("send_message");
     }
     printf("Waiting for username verification...\n");
-    char *recieved = get_message(fd_client_recv);
+    char *recieved = get_message(fd_client_recv, key);
     if (recieved == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);
@@ -105,7 +105,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
     }
     free(recieved);
     printf("Both persons accepted the chat.\n");
-    if (start_chat(fd_client_send, fd_client_recv, username, othername)) {
+    if (start_chat(fd_client_send, fd_client_recv, username, othername, publickey, key)) {
         free(othername);
         RSA_free(key);
         RSA_free(publickey);

@@ -7,7 +7,7 @@
 
 #include "functions.h"
 
-int send_message(int fd, char *msg) {
+int send_message(int fd, char *msg, RSA *publickey) {
     size_t len = strlen(msg);
     char len_string[LEN_BUFFER_SIZE];
     bzero(len_string, LEN_BUFFER_SIZE);
@@ -24,14 +24,21 @@ int send_message(int fd, char *msg) {
     if (strtoul(len_string, NULL, 10) != len) {
         PRINT_ERROR("send_message");
     }
-    bytes_sent = send(fd, msg, strlen(msg), 0);
+    char *crypt = (char *) malloc(RSA_size(publickey) * sizeof(char));
+    if (RSA_public_encrypt(len, (unsigned char *) msg, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
+        PRINT_ERROR("RSA_public_encrypt");
+    }
+    bytes_sent = send(fd, crypt, RSA_size(publickey), 0);
     if (bytes_sent < 0) {
+        free(crypt);
         PRINT_ERROR("send");
     }
+    free(crypt);
     return EXIT_SUCCESS;
 }
 
-char *get_message(int fd) {
+char *get_message(int fd, RSA *privatekey) {
     char len_string[LEN_BUFFER_SIZE];
     bzero(len_string, LEN_BUFFER_SIZE);
     int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
@@ -43,20 +50,28 @@ char *get_message(int fd) {
         PRINT_ERROR_RETURN_NULL("send");
     }
     size_t len = atoi(len_string);
+    char *crypt = (char *) malloc(sizeof(char) * RSA_size(privatekey));
+    bytes_rcv = recv(fd, crypt, RSA_size(privatekey), 0);
+    if (bytes_rcv < 0) {
+        free(crypt);
+        PRINT_ERROR_RETURN_NULL("recv");
+    }
     char *msg = (char *) malloc((len + 1) * sizeof(char));
     if (msg == NULL) {
+        free(crypt);
         PRINT_ERROR_RETURN_NULL("malloc");
     }
     bzero(msg, len + 1);
-    bytes_rcv = recv(fd, msg, len, 0);
-    if (bytes_rcv < 0) {
+    if (RSA_private_decrypt(RSA_size(privatekey), (unsigned char *) crypt, (unsigned char *) msg, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
         free(msg);
-        PRINT_ERROR_RETURN_NULL("recv");
+        PRINT_ERROR_RETURN_NULL("RSA_private_decrypt");
     }
+    free(crypt);
     return msg;
 }
 
-int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
+int start_chat(int fd_send, int fd_recv, char *username, char *othername, RSA *publickey, RSA *privatekey) {
     thread_parameter_t *p = (thread_parameter_t *) malloc(sizeof(thread_parameter_t));
     if (p == NULL) {
         PRINT_ERROR("malloc");
@@ -65,6 +80,8 @@ int start_chat(int fd_send, int fd_recv, char *username, char *othername) {
     p->fd_send = fd_send;
     p->username = username;
     p->othername = othername;
+    p->publickey = publickey;
+    p->privatekey = privatekey;
     p->enabled = 1;
     pthread_t send_thread_s, recv_thread_s;
     if (pthread_create(&send_thread_s, NULL, &send_thread, (void *) p)) {
@@ -128,7 +145,7 @@ void *send_thread(void *ptr) {
             free(msg);
             continue;
         }
-        if (send_message(p->fd_send, msg)) {
+        if (send_message(p->fd_send, msg, p->publickey)) {
             p->enabled = 0;
             free(msg);
             PRINT_ERROR_PTHREAD("send_message");
@@ -147,7 +164,7 @@ void *send_thread(void *ptr) {
 void *recv_thread(void *ptr) {
     thread_parameter_t *p = (thread_parameter_t *) ptr;
     while (p->enabled) {
-        char *msg = get_message(p->fd_recv);
+        char *msg = get_message(p->fd_recv, p->privatekey);
         if (msg == NULL) {
             p->enabled = 0;
             PRINT_ERROR_PTHREAD("get_message");
@@ -176,7 +193,7 @@ RSA *create_rsa_key(uint16_t bits) {
         RSA_free(key);
         PRINT_ERROR_RETURN_NULL("BN_new");
     }
-    if (!BN_rand(e, bits, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ODD)) {
+    if (!BN_set_word(e, RSA_F4)) {
         RSA_free(key);
         BN_clear_free(e);
         PRINT_ERROR_RETURN_NULL("BN_rand");

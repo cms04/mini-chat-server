@@ -17,6 +17,8 @@ typedef struct {
     short enabled;
     char *username;
     char *othername;
+    RSA *publickey;
+    RSA *privatekey;
 } thread_parameter_t;
 
 #define LEN_BUFFER_SIZE 15
@@ -45,9 +47,9 @@ typedef struct {
                                                 str.sin_addr.s_addr = inet_addr(ipaddr); \
                                                 str.sin_port = htons(port)
 
-int send_message(int fd, char *msg);
-char *get_message(int fd);
-int start_chat(int fd_send, int fd_recv, char *username, char *othername);
+int send_message(int fd, char *msg, RSA *publickey);
+char *get_message(int fd, RSA *privatekey);
+int start_chat(int fd_send, int fd_recv, char *username, char *othername, RSA *publickey, RSA *privatekey);
 char *read_input(void);
 
 void *send_thread(void *ptr);
