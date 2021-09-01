@@ -8,11 +8,15 @@ A simple real-time chat server and client.
 
 Compile the program using the Makefile. Just type `make`. Then you can start the program with
 
-`./minichatserver [-s] -u <USERNAME> -a <SERVER-ADRESS> -p <SERVER-PORT>`
+`./minichatserver [-s] [-b <RSA KEY BIT LENGTH>] -u <USERNAME> -a <SERVER-ADRESS> -p <SERVER-PORT>`
 
 Parameters:
 
+- `-u`: Set the username that is shown in the chat to your chat-partner.
+- `-a`: If you are the server, then you have to specify your IP-Adress with this parameter. If you are the client, you specify the IP of your chat-partner with this parameter.
+- `-p`: If you are the server, then you have to specify the server-port with this parameter. If you are the client, you specify the server's port on your chat-partner's computer with this parameter.
+
+Optional parameters:
+
 - `-s`: Activates the server mode. If you are the server, set this parameter, otherwise don't set it.
-- `-u`: Set your username that is shown in the chat to your chat-partner. This parameter has to be set!
-- `-a`: If you are the server, then you have to specify your IP-Adress with this parameter. If you are the client, you specify the IP of your chat-partner with this parameter. This parameter has to be set!
-- `-p`: If you are the server, then you have to specify the server-port with this parameter. If you are the client, you specify the server's port on your chat-partner's computer with this parameter. This parameter has to be set!
+- `-b`: Sets the RSA key bit length, default is 2048. You can choose 1024, 2048, 4096 or 8192. A higher number means more security, but your computer needs more time for encryption, decryption and key generation. 1024 is very fast but not recommended for security reasons!
