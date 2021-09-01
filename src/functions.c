@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <openssl/bn.h>
 #include <openssl/pem.h>
+#include <unistd.h>
 
 #include "functions.h"
 
@@ -188,4 +189,58 @@ RSA *create_rsa_key(void) {
     BN_clear_free(e);
     printf("Your RSA key was generated successfully.\n");
     return key;
+}
+
+int send_publickey(RSA *key, int fd_send) {
+    RSA *publickey = RSAPublicKey_dup(key);
+    if (publickey == NULL) {
+        PRINT_ERROR("RSAPublicKey_dup");
+    }
+    FILE *fp = fopen("sended.key", "w+");
+    if (fp == NULL) {
+        RSA_free(publickey);
+        PRINT_ERROR("fopen");
+    }
+    PEM_write_RSAPublicKey(fp, publickey);
+    size_t len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    char buf[len];
+    bzero(buf, len);
+    fread(buf, sizeof(char), len, fp);
+    int bytes_sent = send(fd_send, buf, len, 0);
+    if (bytes_sent < 0) {
+        PRINT_ERROR("send");
+    }
+    fclose(fp);
+    unlink("sended.key");
+    RSA_free(publickey);
+    return EXIT_SUCCESS;
+}
+
+RSA *recv_publickey(int fd_recv) {
+    char buf[4096];
+    bzero(buf, 4096);
+    int bytes_rcv = recv(fd_recv, buf, 4096, 0);
+    if (bytes_rcv < 0) {
+        PRINT_ERROR_RETURN_NULL("recv");
+    }
+    FILE *fp = fopen("recieved.key", "w+");
+    if (fp == NULL) {
+        PRINT_ERROR_RETURN_NULL("fopen");
+    }
+    fwrite(buf, sizeof(char), bytes_rcv, fp);
+    fseek(fp, 0, SEEK_SET);
+    RSA *publickey = RSA_new();
+    if (publickey == NULL) {
+        fclose(fp);
+        PRINT_ERROR_RETURN_NULL("RSA_new");
+    }
+    if (PEM_read_RSAPublicKey(fp, &publickey, NULL, NULL) == NULL) {
+        RSA_free(publickey);
+        fclose(fp);
+        PRINT_ERROR_RETURN_NULL("PEM_read_RSAPublicKey");
+    }
+    fclose(fp);
+    unlink("recieved.key");
+    return publickey;
 }
