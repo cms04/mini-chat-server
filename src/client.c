@@ -4,7 +4,7 @@
 #include "functions.h"
 #include "client.h"
 
-int init_client(char *username, char *ipaddr, uint16_t port) {
+int init_client(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
     int fd_client_send = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd_client_send < 0) {
         PRINT_ERROR("socket");
@@ -14,7 +14,7 @@ int init_client(char *username, char *ipaddr, uint16_t port) {
         CLOSE_SOCKET(fd_client_send);
         PRINT_ERROR("socket");
     }
-    RSA *key = create_rsa_key();
+    RSA *key = create_rsa_key(bits);
     if (key == NULL) {
         CLOSE_2_SOCKETS(fd_client_recv, fd_client_send);
         PRINT_ERROR("create_rsa_key");

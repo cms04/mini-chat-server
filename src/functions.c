@@ -164,7 +164,7 @@ void *recv_thread(void *ptr) {
     pthread_exit((void *) ((long) EXIT_SUCCESS));
 }
 
-RSA *create_rsa_key(void) {
+RSA *create_rsa_key(uint16_t bits) {
     printf("Your RSA key is generated...\n");
     RSA *key = RSA_new();
     if (key == NULL) {
@@ -176,12 +176,12 @@ RSA *create_rsa_key(void) {
         RSA_free(key);
         PRINT_ERROR_RETURN_NULL("BN_new");
     }
-    if (!BN_rand(e, 2048, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ODD)) {
+    if (!BN_rand(e, bits, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ODD)) {
         RSA_free(key);
         BN_clear_free(e);
         PRINT_ERROR_RETURN_NULL("BN_rand");
     }
-    if (!RSA_generate_key_ex(key, 2048, e, NULL)) {
+    if (!RSA_generate_key_ex(key, bits, e, NULL)) {
         RSA_free(key);
         BN_clear_free(e);
         PRINT_ERROR_RETURN_NULL("RSA_generate_key_ex");

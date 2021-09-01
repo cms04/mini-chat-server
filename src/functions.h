@@ -52,7 +52,7 @@ char *read_input(void);
 
 void *send_thread(void *ptr);
 void *recv_thread(void *ptr);
-RSA *create_rsa_key(void);
+RSA *create_rsa_key(uint16_t bits);
 int send_publickey(RSA *key, int fd_send);
 RSA *recv_publickey(int fd_recv);
 

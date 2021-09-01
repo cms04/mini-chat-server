@@ -4,7 +4,7 @@
 #include "functions.h"
 #include "server.h"
 
-int init_server(char *username, char *ipaddr, uint16_t port) {
+int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
     int fd_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd_server == 0) {
         PRINT_ERROR("socket");
@@ -21,7 +21,7 @@ int init_server(char *username, char *ipaddr, uint16_t port) {
     }
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    RSA *key = create_rsa_key();
+    RSA *key = create_rsa_key(bits);
     if (key == NULL) {
         CLOSE_SOCKET(fd_server);
         PRINT_ERROR("create_rsa_key");
