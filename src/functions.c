@@ -9,43 +9,85 @@
 
 int send_message(int fd, char *msg, RSA *publickey) {
     size_t rsa_size = RSA_size(publickey);
+    size_t block_size = rsa_size - 42;
     size_t msg_len = strlen(msg);
-    char *crypt = (char *) malloc(rsa_size * sizeof(char));
-    if (crypt == NULL) {
-        PRINT_ERROR("malloc");
-    }
-    if (RSA_public_encrypt(msg_len, (unsigned char *) msg, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
-        free(crypt);
-        ERROR_OPENSSL("RSA_public_encrypt");
-    }
-    if (send(fd, crypt, rsa_size, 0) < 0) {
-        free(crypt);
+    size_t block_count = msg_len / block_size + 1;
+    char len_string[LEN_BUFFER_SIZE];
+    bzero(len_string, LEN_BUFFER_SIZE);
+    snprintf(len_string, LEN_BUFFER_SIZE - 1, "%ld", block_count);
+    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
+    if (bytes_sent < 0) {
         PRINT_ERROR("send");
     }
+    bzero(len_string, LEN_BUFFER_SIZE);
+    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
+    if (bytes_rcv < 0) {
+        PRINT_ERROR("recv");
+    }
+    if (strtoul(len_string, NULL, 10) != block_count) {
+        PRINT_ERROR("send_message");
+    }
+    char *crypt = (char *) malloc(rsa_size * sizeof(char));
+    bzero(crypt, rsa_size);
+    char *block = (char *) malloc(block_size * sizeof(char));
+    bzero(block, block_size);
+    char *msg_ptr = msg;
+    for (size_t i = 0; i < block_count; i++) {
+        strncpy(block, msg_ptr, block_size);
+        if (RSA_public_encrypt(block_size, (unsigned char *) block, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
+            free(crypt);
+            free(block);
+            ERROR_OPENSSL("RSA_public_encrypt");
+        }
+        if (send(fd, crypt, rsa_size, 0) < 0) {
+            free(crypt);
+            free(block);
+            PRINT_ERROR("send");
+        }
+        msg_ptr += block_size;
+    }
+    free(block);
     free(crypt);
     return EXIT_SUCCESS;
 }
 
 char *get_message(int fd, RSA *privatekey) {
     size_t rsa_size = RSA_size(privatekey);
-    char *crypt = (char *) malloc(sizeof(char) * rsa_size);
-    if (crypt == NULL) {
-        PRINT_ERROR_RETURN_NULL("malloc");
-    }
-    if (recv(fd, crypt, rsa_size, 0) < 0) {
-        free(crypt);
+    char len_string[LEN_BUFFER_SIZE];
+    bzero(len_string, LEN_BUFFER_SIZE);
+    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
+    if (bytes_rcv < 0) {
         PRINT_ERROR_RETURN_NULL("recv");
     }
-    char *msg = (char *) malloc(rsa_size * sizeof(char));
+    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
+    if (bytes_sent < 0) {
+        PRINT_ERROR_RETURN_NULL("send");
+    }
+    size_t block_count = atoi(len_string);
+    char *msg = (char *) malloc(rsa_size * block_count * sizeof(char));
     if (msg == NULL) {
-        free(crypt);
         PRINT_ERROR_RETURN_NULL("malloc");
     }
-    bzero(msg, rsa_size);
-    if (RSA_private_decrypt(rsa_size, (unsigned char *) crypt, (unsigned char *) msg, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
-        free(crypt);
+    bzero(msg, rsa_size * block_count);
+    char *crypt = (char *) malloc(sizeof(char) * rsa_size);
+    if (crypt == NULL) {
         free(msg);
-        ERROR_OPENSSL_RETURN_NULL("RSA_private_decrypt");
+        PRINT_ERROR_RETURN_NULL("malloc");
+    }
+    char *msg_ptr = msg;
+    size_t block_size = rsa_size - 42;
+    for (size_t i = 0; i < block_count; i++) {
+        if (recv(fd, crypt, rsa_size, 0) < 0) {
+            free(crypt);
+            free(msg);
+            PRINT_ERROR_RETURN_NULL("recv");
+        }
+        if (RSA_private_decrypt(rsa_size, (unsigned char *) crypt, (unsigned char *) msg_ptr, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
+            free(crypt);
+            free(msg);
+            ERROR_OPENSSL_RETURN_NULL("RSA_private_decrypt");
+        }
+        msg_ptr += block_size;
     }
     free(crypt);
     return msg;
