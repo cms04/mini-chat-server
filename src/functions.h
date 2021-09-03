@@ -54,8 +54,8 @@ typedef struct {
                                                 str.sin_addr.s_addr = inet_addr(ipaddr); \
                                                 str.sin_port = htons(port)
 
-int send_message(int fd, char *msg, RSA *publickey);
-char *get_message(int fd, RSA *privatekey);
+int send_message(int fd, char *msg, RSA *publickey, RSA *privatekey);
+char *get_message(int fd, RSA *privatekey, RSA *publickey);
 int start_chat(int fd_send, int fd_recv, char *username, char *othername, RSA *publickey, RSA *privatekey);
 char *read_input(void);
 

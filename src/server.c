@@ -53,7 +53,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         PRINT_ERROR("recv_publickey");
     }
     printf("RSA public keys exchanged\n");
-    char *othername = get_message(fd_client_recv, key);
+    char *othername = get_message(fd_client_recv, key, publickey);
     if (othername == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         RSA_free(key);
@@ -63,7 +63,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
     printf("The other person's username is %s. Is this correct? [y,N] ", othername);
     char answer = getchar();
     getchar();
-    if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No", publickey)) {
+    if (send_message(fd_client_send, answer == 'Y' || answer == 'y' ? "Yes" : "No", publickey, key)) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);
         RSA_free(key);
@@ -78,7 +78,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         RSA_free(publickey);
         return EXIT_SUCCESS;
     }
-    if (send_message(fd_client_send, username, publickey)) {
+    if (send_message(fd_client_send, username, publickey, key)) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);
         RSA_free(key);
@@ -86,7 +86,7 @@ int init_server(char *username, char *ipaddr, uint16_t port, uint16_t bits) {
         PRINT_ERROR("send_message");
     }
     printf("Waiting for username verification...\n");
-    char *recieved = get_message(fd_client_recv, key);
+    char *recieved = get_message(fd_client_recv, key, publickey);
     if (recieved == NULL) {
         CLOSE_3_SOCKETS(fd_client_recv, fd_client_send, fd_server);
         free(othername);

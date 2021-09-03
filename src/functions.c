@@ -7,7 +7,7 @@
 
 #include "functions.h"
 
-int send_message(int fd, char *msg, RSA *publickey) {
+int send_message(int fd, char *msg, RSA *publickey, RSA *privatekey) {
     size_t rsa_size = RSA_size(publickey);
     size_t block_size = rsa_size - 42;
     size_t msg_len = strlen(msg);
@@ -15,20 +15,31 @@ int send_message(int fd, char *msg, RSA *publickey) {
     char len_string[LEN_BUFFER_SIZE];
     bzero(len_string, LEN_BUFFER_SIZE);
     snprintf(len_string, LEN_BUFFER_SIZE - 1, "%ld", block_count);
-    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
+    char *crypt = (char *) malloc(rsa_size * sizeof(char));
+    bzero(crypt, rsa_size);
+    if (RSA_public_encrypt(strlen(len_string), (unsigned char *) len_string, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
+        ERROR_OPENSSL("RSA_public_encrypt");
+    }
+    int bytes_sent = send(fd, crypt, rsa_size, 0);
     if (bytes_sent < 0) {
+        free(crypt);
         PRINT_ERROR("send");
     }
     bzero(len_string, LEN_BUFFER_SIZE);
-    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
+    int bytes_rcv = recv(fd, crypt, rsa_size, 0);
     if (bytes_rcv < 0) {
+        free(crypt);
         PRINT_ERROR("recv");
     }
+    if (RSA_private_decrypt(rsa_size, (unsigned char *) crypt, (unsigned char *) len_string, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
+        ERROR_OPENSSL("RSA_private_decrypt");
+    }
     if (strtoul(len_string, NULL, 10) != block_count) {
+        free(crypt);
         PRINT_ERROR("send_message");
     }
-    char *crypt = (char *) malloc(rsa_size * sizeof(char));
-    bzero(crypt, rsa_size);
     char *block = (char *) malloc(block_size * sizeof(char));
     bzero(block, block_size);
     char *msg_ptr = msg;
@@ -51,29 +62,39 @@ int send_message(int fd, char *msg, RSA *publickey) {
     return EXIT_SUCCESS;
 }
 
-char *get_message(int fd, RSA *privatekey) {
+char *get_message(int fd, RSA *privatekey, RSA *publickey) {
     size_t rsa_size = RSA_size(privatekey);
     char len_string[LEN_BUFFER_SIZE];
     bzero(len_string, LEN_BUFFER_SIZE);
-    int bytes_rcv = recv(fd, len_string, LEN_BUFFER_SIZE - 1, 0);
+    char *crypt = (char *) malloc(sizeof(char) * rsa_size);
+    if (crypt == NULL) {
+        PRINT_ERROR_RETURN_NULL("malloc");
+    }
+    int bytes_rcv = recv(fd, crypt, rsa_size, 0);
     if (bytes_rcv < 0) {
+        free(crypt);
         PRINT_ERROR_RETURN_NULL("recv");
     }
-    int bytes_sent = send(fd, len_string, strlen(len_string), 0);
-    if (bytes_sent < 0) {
-        PRINT_ERROR_RETURN_NULL("send");
+    if (RSA_private_decrypt(rsa_size, (unsigned char *) crypt, (unsigned char *) len_string, privatekey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
+        ERROR_OPENSSL_RETURN_NULL("RSA_private_decrypt");
     }
     size_t block_count = atoi(len_string);
+    if (RSA_public_encrypt(strlen(len_string), (unsigned char *) len_string, (unsigned char *) crypt, publickey, RSA_PKCS1_OAEP_PADDING) < 0) {
+        free(crypt);
+        ERROR_OPENSSL_RETURN_NULL("RSA_public_encrypt");
+    }
+    int bytes_sent = send(fd, crypt, rsa_size, 0);
+    if (bytes_sent < 0) {
+        free(crypt);
+        PRINT_ERROR_RETURN_NULL("send");
+    }
     char *msg = (char *) malloc(rsa_size * block_count * sizeof(char));
     if (msg == NULL) {
+        free(crypt);
         PRINT_ERROR_RETURN_NULL("malloc");
     }
     bzero(msg, rsa_size * block_count);
-    char *crypt = (char *) malloc(sizeof(char) * rsa_size);
-    if (crypt == NULL) {
-        free(msg);
-        PRINT_ERROR_RETURN_NULL("malloc");
-    }
     char *msg_ptr = msg;
     size_t block_size = rsa_size - 42;
     for (size_t i = 0; i < block_count; i++) {
@@ -152,7 +173,7 @@ void *send_thread(void *ptr) {
             free(msg);
             continue;
         }
-        if (send_message(p->fd_send, msg, p->publickey)) {
+        if (send_message(p->fd_send, msg, p->publickey, p->privatekey)) {
             p->enabled = 0;
             free(msg);
             PRINT_ERROR_PTHREAD("send_message");
@@ -172,7 +193,7 @@ void *send_thread(void *ptr) {
 void *recv_thread(void *ptr) {
     thread_parameter_t *p = (thread_parameter_t *) ptr;
     while (p->enabled) {
-        char *msg = get_message(p->fd_recv, p->privatekey);
+        char *msg = get_message(p->fd_recv, p->privatekey, p->publickey);
         if (msg == NULL) {
             p->enabled = 0;
             PRINT_ERROR_PTHREAD("get_message");
